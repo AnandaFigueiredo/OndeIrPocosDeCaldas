@@ -1,0 +1,35 @@
+/* Experimento de fundos. A versão anterior está em backups/versao-fundos-claros. */
+body {
+  background: #dceaf0;
+}
+
+.numbers {
+  border-color: #087b9b40;
+}
+
+.services-section {
+  background: #c3dfeb;
+}
+
+.testimonials {
+  background: #212b31;
+  color: #f7f8fa;
+}
+
+.testimonials .eyebrow,
+.testimonials h2 em,
+.testimonials .quote-pending > span {
+  color: #36bce0;
+}
+
+.testimonials .quote-pending small {
+  color: #c1d4df;
+}
+
+.instagram-section {
+  background: #c3dfeb;
+}
+
+.footer {
+  background: #dceaf0;
+}

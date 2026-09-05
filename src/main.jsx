@@ -1,0 +1,14 @@
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import '@fontsource/dm-serif-display/latin-400.css';
+import '@fontsource/dm-serif-display/latin-400-italic.css';
+import '@fontsource/manrope/latin-400.css';
+import '@fontsource/manrope/latin-500.css';
+import '@fontsource/manrope/latin-600.css';
+import '@fontsource/manrope/latin-700.css';
+import './index.css';
+import './colored-sections.css';
+import './establishments.css';
+import './admin.css';
+import Routes from './Routes.jsx';
+createRoot(document.getElementById('root')).render(<React.StrictMode><Routes /></React.StrictMode>);
