@@ -3,6 +3,9 @@ dist/
 test-results/
 playwright-report/
 .env*
+.env
+.env.local
+.env.*.local
 !.env.example
 backups/
 *.log

@@ -11,6 +11,7 @@ page.on('pageerror', e => errors.push(e.message));
 const goto = async path => { await page.goto(base + path); await page.locator('h1').waitFor(); };
 try {
   await goto('/lugares');
+  assert.equal(await page.evaluate(async () => (await import('/src/lib/supabase.js')).isMockMode), true, 'Este teste exige VITE_DATA_MODE=mock em um servidor de desenvolvimento isolado.');
   await expect(page.locator('.place-card')).toHaveCount(6);
   await page.getByRole('button', { name: 'Cafés', exact: true }).click();
   await expect(page.locator('.place-card')).toHaveCount(1);
@@ -69,6 +70,8 @@ try {
   await page.getByRole('button', { name: 'Visualizar como aparece no site' }).click();
   await expect(page.locator('.admin-preview')).toContainText('Lugar de teste automatizado');
   await page.getByRole('button', { name: 'Cadastrar estabelecimento' }).click();
+  await expect(page).toHaveURL(/\/admin\/establishments$/);
+  await page.getByRole('link', { name: 'Editar Lugar de teste automatizado' }).click();
   await expect(page).toHaveURL(/\/admin\/establishments\/[^/]+\/edit$/);
   const editUrl = page.url();
   await page.reload();

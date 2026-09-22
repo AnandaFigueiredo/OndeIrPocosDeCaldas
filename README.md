@@ -2,9 +2,9 @@
 
 ## Vitrine e painel administrativo
 
-A nova área de estabelecimentos e o painel de demonstração estão documentados em [docs/establishments.md](docs/establishments.md), incluindo rotas, acesso, testes, armazenamento local e futura integração com Supabase.
+A vitrine e o painel estão integrados ao Supabase. Configuração, login, cadastro, uploads e testes estão documentados em [docs/establishments.md](docs/establishments.md). O modo de demonstração exige ativação explícita em desenvolvimento.
 
-Site institucional em React, Vite, Tailwind CSS e JavaScript. Sem backend e sem dependência da API do Instagram. Fontes locais, ícones Lucide e animações com Intersection Observer.
+Site institucional em React, Vite, Tailwind CSS e JavaScript, com Supabase para banco, autenticação e imagens dos estabelecimentos. Sem dependência da API do Instagram. Fontes locais, ícones Lucide e animações com Intersection Observer.
 
 ## Executar
 

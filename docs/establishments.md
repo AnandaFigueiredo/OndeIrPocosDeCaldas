@@ -1,70 +1,114 @@
-# Vitrine de lugares e painel
+# Vitrine e painel conectados ao Supabase
 
-## Acessos
+## Configuração
 
-- `/lugares`: busca por nome e filtro de categoria.
-- `/lugares/:slug`: detalhes de um cadastro com campanha pública.
-- `/admin/login`: login de demonstração, **admin@example.com / demo123**.
-- `/admin`: indicadores e campanhas que vencem em até 30 dias.
-- `/admin/establishments`: listagem, edição, ativação e exclusão.
-- `/admin/establishments/new`: novo cadastro.
-- `/admin/establishments/:id/edit`: edição completa e prévia do card.
+O fluxo normal usa o Supabase existente. Não execute os SQLs antigos em `supabase/`: eles pertencem à proposta anterior de schema e não são necessários para esta integração. Nenhuma tabela, policy, função ou bucket foi criada ou alterada por esta entrega.
 
-A home ganhou uma seção de até seis cadastros entre Descobertas e Divulgação. Header, hero, paleta e demais seções foram preservados. Os links públicos são nativos, com rotas resolvidas pelo frontend; Vercel e Netlify possuem configurações de fallback para acesso direto às URLs.
+O arquivo `.env.local`, na raiz, já recebeu os valores fornecidos. Ele é ignorado pelo Git. A configuração de referência em `.env.example` não contém chaves reais:
 
-## Testar sem editar código
+```env
+VITE_DATA_MODE=supabase
+VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=SUA_CHAVE_PUBLICA
+```
 
-1. Entre em `/admin` com o acesso de demonstração.
-2. Clique em Novo estabelecimento, informe nome e categoria. O slug é gerado e pode ser editado.
-3. Preencha contatos separados, endereço e links completos. Campos vazios não geram botões de contato.
-4. Selecione logo, capa e até oito imagens de galeria (JPG, PNG, WebP ou GIF, até 700 KB cada). Os previews podem ser removidos.
-5. Defina selo opcional, destaque, ordem, status e datas. Cadastros fictícios podem ser marcados explicitamente.
-6. Visualize o card e salve. Abra a vitrine para conferir a publicação.
-7. Recarregue o painel para conferir a persistência. Edite, desative e exclua pela listagem.
+Use a URL base, sem `/rest/v1/`. Reinicie o Vite após editar variáveis. Na hospedagem, configure essas mesmas variáveis antes de compilar. Nunca use service role ou chave secreta no frontend.
 
-O período é inclusivo, considerando o dia civil em America/Sao_Paulo. A campanha termina após o último dia, não no começo dele. Registros inativos têm prioridade de status; depois expirados, agendados e ativos. A interface atualiza a consulta a cada 30 segundos e ao receber mudanças locais. Registros expirados continuam no painel; a página pública também verifica a disponibilidade.
+A dependência existente `@supabase/supabase-js@2.117.0` foi reutilizada. A publishable key identifica o projeto; o acesso aos dados é controlado por Auth e RLS. Referência: [chaves de API do Supabase](https://supabase.com/docs/guides/getting-started/api-keys).
 
-## Armazenamento e mocks
+## Como testar
 
-`localStorage['ondeir.establishments.v1']` guarda os cadastros e imagens; `sessionStorage['ondeir.mock-session']` guarda a sessão fictícia. Ambos pertencem ao navegador e à origem (domínio/porta). Outro dispositivo ou porta terá dados separados. A autenticação mock não é proteção de segurança.
+1. Execute `npm.cmd run dev` e abra a URL exibida pelo terminal.
+2. Acesse `/admin/login`. Use o e-mail e a senha do administrador que você já criou no Supabase Auth. O aplicativo verifica `is_admin()` e recusa contas não autorizadas. O acesso de demonstração não está ativo.
+3. Acesse **Estabelecimentos → Novo estabelecimento**. Preencha nome, categoria, dados, status, ordem e datas de campanha.
+4. Selecione logo, capa e galeria: JPG, PNG ou WebP, até 5 MB por arquivo e oito imagens na galeria. O limite efetivo também depende do bucket. A prévia aparece antes do envio; o upload ocorre ao salvar.
+5. Clique em **Cadastrar estabelecimento**. O aplicativo cria o registro inativo, obtém seu ID, envia imagens, atualiza as URLs e o status escolhido e volta à listagem com a confirmação.
+6. Abra a edição e recarregue a página para verificar a persistência. Salvar sem trocar as imagens preserva as URLs e não faz novos uploads.
+7. Confira a home em **Por onde começar?**, `/lugares` e `/lugares/slug-do-negocio`. Use também uma janela anônima. A home exibe os primeiros seis registros públicos; busca e categoria funcionam em `/lugares`.
+8. Teste ativação/desativação, datas e edição. Cadastros que a policy pública não permite devem desaparecer da vitrine, inclusive quando você está logado como admin.
+9. Ao excluir, confirme no modal. O registro é removido e o aplicativo tenta limpar seus arquivos. Falhas de limpeza geram aviso sem desfazer a exclusão.
+10. Use **Sair** e confira que `/admin` volta a exigir login.
 
-Na primeira visita são criados seis exemplos em `src/data/establishments.js`, identificados visualmente. Não são anunciantes reais. Números com zeros são inválidos e links example.com são demonstrações. O Maps dos exemplos aponta somente para a cidade, não para uma empresa. Não foram adicionadas fotos externas, preços, avaliações ou clientes reais. A galeria e uploads podem ser testados com arquivos do usuário.
+O painel gerencia os estabelecimentos. Os demais textos, seções, portfólio e identidade visual do site continuam nos arquivos existentes.
 
-Os previews usam `URL.createObjectURL()` e revogam URLs ao finalizar a leitura. Para sobreviver à navegação e ao recarregamento, o adaptador mock persiste imagens como data URLs. O limite total de localStorage varia por navegador; falhas de espaço são exibidas e não substituem os dados anteriores. Esta estratégia é temporária até o Storage. `resetMockData()` está exportada no serviço e disponível por botão no dashboard apenas em desenvolvimento; exige confirmação e substitui todos os registros locais.
+## Banco e campos
 
-## Arquivos criados
+A tabela usada é `public.establishments`. O mapper centraliza as conversões:
 
-- `src/Routes.jsx`: rotas e carregamento separado das páginas administrativas.
-- `src/establishments.css`, `src/admin.css`: estilos da feature, sem alterar a folha global.
-- `src/data/establishments.js`: modelo padrão e seis registros demonstrativos.
-- `src/services/establishmentsService.js`, `authService.js`: persistência CRUD e autenticação mock.
-- `src/utils/establishments.js`, `phone.js`, `dates.js`: publicação, filtros, slugs, links, telefone e datas.
-- `src/hooks/useEstablishments.js`, `usePageMeta.js`: consultas e metadados.
-- `src/components/establishments/`: cards, seção da home, filtros, galeria e contatos/localização.
-- `src/components/admin/`: layout, proteção mock, status, upload e modal acessível nativo.
-- `src/pages/PlacesPage.jsx`, `PlaceDetailsPage.jsx`: páginas públicas.
-- `src/pages/Admin/`: login, dashboard, listagem e formulário reutilizado por criação/edição.
-- `src/lib/supabase.js`, `.env.example`: pontos de integração futura, sem cliente ativo ou credenciais.
-- `vercel.json`, `public/_redirects`: fallback de rotas de SPA.
-- `scripts/check-establishments.mjs`: verificações funcionais e responsivas em contexto de navegador isolado.
-- `docs/establishments.md`: esta documentação.
+| Frontend | Banco |
+| --- | --- |
+| shortDescription | short_description |
+| logo | logo_url |
+| coverImage | cover_image_url |
+| number | address_number |
+| zipCode | cep |
+| mapsUrl | maps_url |
+| instagram | instagram_url |
+| website | website_url |
+| openingHours | opening_hours |
+| placementType | placement_type |
+| displayOrder | display_order |
+| isActive | is_active |
+| startDate / endDate | start_date / end_date |
 
-Alterados: `src/App.jsx` (seção da home), `src/main.jsx` (rotas e estilos), `src/components/UI.jsx` (destino opcional do link da logo, mantendo o padrão na home), `.gitignore` (permitir `.env.example`).
+`gallery` é um array de URLs e `opening_hours` um array de objetos `{ day, hours }`. `created_at` e `updated_at` ficam sob controle do banco. As colunas `price_range` e `is_mock` não existem no banco conferido; por isso não são enviadas nem oferecidas no formulário real.
 
-## Contrato para o Supabase
+A camada de serviço mantém `getAll`, `getPublic`, `getById`, `getBySlug`, `create`, `update`, `remove` e `toggleStatus(id, isActive)`. A ordenação é por `display_order`, depois `created_at` decrescente e `id` para desempate.
 
-O modelo inclui `id`, `name`, `slug`, `category`, `subcategory`, `shortDescription`, `description`, `logo`, `coverImage`, `gallery`, `phone`, `whatsapp`, `address`, `number`, `neighborhood`, `city`, `state`, `zipCode`, `mapsUrl`, `instagram`, `website`, `openingHours`, `priceRange`, `badge`, `placementType`, `displayOrder`, `isActive`, `startDate`, `endDate`, `createdAt`, `updatedAt` e `isMock` (somente demonstração). Galeria: array de URLs; horários: array `{ day, hours }`; datas de campanha: `YYYY-MM-DD` ou null; timestamps: ISO. Destaque: standard/featured/premium.
+O cliente administrativo persiste a sessão de Auth e usa as permissões da conta. A vitrine utiliza um cliente sem sessão persistida para que a RLS pública se aplique mesmo no navegador do administrador. Não duplicamos filtros de campanha na consulta pública. Os helpers de datas continuam mostrando ATIVO, INATIVO, AGENDADO e EXPIRADO no painel.
 
-Substituir os métodos assíncronos `getAll`, `getPublic`, `getById`, `getBySlug`, `create`, `update`, `remove`, `toggleStatus` no serviço pela tabela **establishments**, mapeando camelCase para colunas se necessário. Manter a ordenação por displayOrder e a verificação de campanha na consulta pública. Definir slug único, validação de datas e tipos no banco. `getById` deve ficar restrito ao admin autenticado; `getBySlug` público deve retornar somente campanhas válidas.
+## Imagens e recuperação de falhas
 
-Substituir authService por Supabase Auth e sessão real; ativar políticas RLS para leitura pública válida e escrita apenas por administradores autorizados. Substituir uploads locais por Supabase Storage com controle de tipo/tamanho e permissões. Nunca expor service_role no frontend. Configurar apenas variáveis VITE públicas no cliente; não há Supabase SDK instalado nem chamadas remotas nesta versão.
+Bucket existente: `establishments`. Caminhos: `logos/{id}/...`, `covers/{id}/...` e `gallery/{id}/...`. Os nomes recebem timestamp, UUID e nome sanitizado. O site salva URLs públicas.
 
-### Keep-alive futuro (não ativo)
+Arquivos existentes são preservados durante edição; novas seleções ficam em memória até salvar. Imagens substituídas ou removidas da galeria são limpas após o banco confirmar a alteração.
 
-Após integrar o banco, criar `/api/keep-alive` no servidor, consultando somente `id` com limite 1 na tabela establishments, e adicionar em `vercel.json` a propriedade `crons: [{ "path": "/api/keep-alive", "schedule": "0 12 * * *" }]`. Não foi criado Cron que chame endpoint inexistente. Usar variáveis do servidor e autenticar o endpoint de Cron conforme a implantação. As variáveis estão listadas vazias em `.env.example`.
+Se o upload de um cadastro novo falhar, o aplicativo tenta desfazer o registro inativo. Se não conseguir, mostra um link para continuar sua edição e bloqueia nova criação pelo mesmo formulário para evitar duplicação. A limpeza de arquivos é feita por melhor esforço e pode exigir conferência manual se a rede ou as permissões falharem.
 
-## Verificar
+## Validação realizada e limites
 
-Com o Vite em execução: `node scripts/check-establishments.mjs`. Padrão: `http://localhost:5174`; altere `BASE_URL` se necessário. Usa Edge headless ou `BROWSER_PATH`. Verifica filtros, contatos, campanhas, login, CRUD, persistência de imagens, modal, drawer e larguras 375/390/430/768/1440. Executa em contexto isolado, sem alterar os dados do navegador da cliente.
+- Conexão real com a publishable key: consulta `id, name` bem-sucedida, sem registros públicos na amostra.
+- Consulta real confirmou os nomes de colunas usados; `price_range` e `is_mock` estão ausentes.
+- `is_admin()` retornou `false` sem sessão.
+- Navegador com leitura pública real: sem exceções ou erros no console; rota administrativa redirecionou ao login e nenhum dado mock foi carregado.
+- Teste com respostas da API simuladas: login válido/inválido, usuário sem autorização, CRUD, mapper, formatos, prévias, uploads, preservação de imagens, consulta pública sem sessão administrativa, rollback de falha de upload, falha de limpeza de Storage e logout.
+- `npm.cmd run build`: aprovado.
 
-`npm run build` gera os arquivos para publicação estática. Metadados das páginas são atualizados no cliente; indexação com HTML previamente renderizado exigirá prerender/SSR quando houver dados reais e domínio definitivo.
+Os testes simulados não comprovam as policies de escrita do projeto real. Login administrativo, CRUD autenticado e upload real ainda precisam ser conferidos com a conta administradora. Não foram recebidas credenciais dessa conta e não foram criados registros remotos de teste. Uma leitura vazia não constitui uma auditoria completa das policies de RLS.
+
+Comandos:
+
+```sh
+node scripts/check-supabase-connection.mjs
+node scripts/check-supabase-ui.mjs
+npm.cmd run build
+```
+
+O teste de navegador inicia seu próprio Vite em `127.0.0.1:5186` e usa Edge headless (ou `BROWSER_PATH`). A primeira etapa faz leitura real. Depois, todas as chamadas ao Supabase são interceptadas; nenhuma gravação alcança o banco remoto.
+
+## Mocks de desenvolvimento
+
+Nenhum mock está ativo na configuração entregue ou em produção. O backup `src/data/establishments.js` só é importado pelo adaptador mock carregado dinamicamente quando `VITE_DATA_MODE=mock` e `import.meta.env.DEV`. O modelo vazio foi separado para não carregar exemplos no fluxo normal.
+
+O script antigo `scripts/check-establishments.mjs` exige um servidor separado em modo mock e falha antes de qualquer gravação se detectar Supabase. Os dados desse modo ficam apenas no navegador de teste.
+
+## Arquivos desta integração
+
+Criados nesta etapa:
+- `src/data/emptyEstablishment.js`
+- `src/components/admin/ImageUpload.jsx` (substitui `ImageUploadMock.jsx`)
+- `src/services/storageService.js`
+- `scripts/check-supabase-connection.mjs`
+- `scripts/check-supabase-ui.mjs`
+
+Atualizados:
+- `.env.local` (somente local), `.env.example` e `.gitignore`
+- `src/lib/supabase.js`
+- `src/services/authService.js`, `establishmentsMapper.js`, `establishmentsSupabaseService.js`, `establishmentsMockService.js` e `mediaService.js`
+- `src/data/establishments.js`
+- `src/pages/Admin/LoginPage.jsx`
+- `src/pages/Admin/Establishments/EstablishmentForm.jsx` e `EstablishmentsListPage.jsx`
+- `src/hooks/useEstablishments.js` e `src/pages/PlaceDetailsPage.jsx`
+- `scripts/check-establishments.mjs`, `README.md` e esta documentação.
+
+A camada de seleção de serviço, a rota protegida e o dashboard existentes foram reutilizados. `package.json` e `package-lock.json` já tinham sido atualizados na correção anterior para instalar o SDK. Keep-alive e Cron não foram implementados.
