@@ -1,0 +1,43 @@
+name: Manter Supabase ativo
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: true
+
+jobs:
+  consultar-banco:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+
+    steps:
+      - name: Verificar configuração
+        shell: bash
+        run: |
+          if [[ -z "$SUPABASE_URL" || -z "$SUPABASE_PUBLISHABLE_KEY" ]]; then
+            echo "Os Secrets SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY precisam estar configurados."
+            exit 1
+          fi
+
+      - name: Consultar estabelecimentos
+        shell: bash
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --retry 3 --retry-all-errors --max-time 30 \
+            "$SUPABASE_URL/rest/v1/establishments?select=id&limit=1" \
+            --header "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            --header "Accept: application/json"
+
+          echo
+          echo "Consulta concluída com sucesso."
